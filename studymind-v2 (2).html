@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyMind AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root {
+  --bg: #0b0c10;
+  --surface: #13141a;
+  --surface2: #1b1c24;
+  --surface3: #22232e;
+  --border: #2c2d3a;
+  --border2: #3a3b4e;
+  --accent: #a8f060;
+  --accent2: #7b6cf6;
+  --accent3: #f06090;
+  --text: #eeedf6;
+  --muted: #72738a;
+  --muted2: #4a4b60;
+  --danger: #f05050;
+  --r: 12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 60% 40% at 20% 0%,rgba(123,108,246,0.07) 0%,transparent 60%),radial-gradient(ellipse 40% 30% at 80% 100%,rgba(168,240,96,0.05) 0%,transparent 60%);pointer-events:none;}
+
+.wrap{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:40px 24px 100px;}
+
+/* Header */
+header{text-align:center;margin-bottom:44px;}
+.logo{font-family:'Instrument Serif',serif;font-size:44px;letter-spacing:-1.5px;line-height:1;}
+.logo em{color:var(--accent);font-style:italic;}
+.sub{font-size:13px;color:var(--muted);margin-top:10px;letter-spacing:.08em;text-transform:uppercase;}
+
+/* API row */
+.api-bar{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 18px;margin-bottom:28px;}
+.api-bar label{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap;}
+.api-bar input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;}
+.api-bar input::placeholder{color:var(--muted2);}
+.key-ok{font-size:11px;font-family:'DM Mono',monospace;color:var(--accent);}
+.key-err{font-size:11px;font-family:'DM Mono',monospace;color:var(--danger);}
+
+/* Section label */
+.sec-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;}
+
+/* Input sources tabs */
+.input-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:16px;overflow:hidden;}
+.tab-bar{display:flex;border-bottom:1px solid var(--border);background:var(--surface);}
+.tab{padding:12px 20px;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;user-select:none;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-content{display:none;padding:20px;}
+.tab-content.active{display:block;}
+
+/* Text area */
+textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;line-height:1.65;padding:14px;resize:vertical;min-height:140px;outline:none;transition:border-color .2s;}
+textarea:focus{border-color:var(--accent2);}
+textarea::placeholder{color:var(--muted2);}
+
+/* Drop zone */
+.dropzone{
+  border:2px dashed var(--border2);border-radius:10px;padding:36px 20px;text-align:center;
+  cursor:pointer;transition:all .2s;background:var(--surface2);position:relative;
+}
+.dropzone:hover,.dropzone.over{border-color:var(--accent2);background:color-mix(in srgb,var(--accent2) 6%,var(--surface2));}
+.dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.dz-icon{font-size:32px;margin-bottom:10px;}
+.dz-text{font-size:14px;color:var(--muted);}
+.dz-text strong{color:var(--text);}
+.dz-types{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted2);margin-top:6px;}
+
+/* File preview list */
+.file-list{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+.file-item{display:flex;align-items:center;gap:10px;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;}
+.file-icon{font-size:18px;flex-shrink:0;}
+.file-info{flex:1;min-width:0;}
+.file-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-meta{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);}
+.file-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;border-radius:4px;transition:color .15s;}
+.file-del:hover{color:var(--danger);}
+.file-preview-thumb{width:36px;height:36px;border-radius:5px;object-fit:cover;border:1px solid var(--border);}
+.file-badge{font-size:10px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;font-weight:500;}
+.badge-pdf{background:color-mix(in srgb,#f06060 15%,transparent);color:#f08080;}
+.badge-img{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent);}
+.badge-txt{background:color-mix(in srgb,var(--accent2) 15%,transparent);color:#a090ff;}
+
+/* Settings row */
+.settings-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;}
+select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;font-size:13px;font-family:'Outfit',sans-serif;outline:none;width:100%;cursor:pointer;appearance:none;transition:border-color .2s;}
+select:focus{border-color:var(--accent2);}
+
+/* Output toggles */
+.outputs-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.tog{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:8px 15px;border-radius:999px;font-size:13px;font-family:'Outfit',sans-serif;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;user-select:none;}
+.tog.on{background:color-mix(in srgb,var(--accent) 12%,transparent);border-color:color-mix(in srgb,var(--accent) 60%,transparent);color:var(--accent);}
+.tog .pip{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;}
+
+/* Generate button */
+.gen-btn{width:100%;padding:16px;background:var(--accent);color:#0b0c10;font-size:15px;font-weight:600;font-family:'Outfit',sans-serif;border:none;border-radius:10px;cursor:pointer;margin-top:20px;transition:opacity .15s,transform .1s;letter-spacing:.02em;}
+.gen-btn:hover{opacity:.88;transform:translateY(-1px);}
+.gen-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+
+/* Results */
+#results{margin-top:36px;}
+.r-block{margin-bottom:18px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.r-head{background:var(--surface);padding:13px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.r-label{font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;}
+.r-status{font-size:11px;font-family:'DM Mono',monospace;}
+.s-loading{color:var(--accent2);}
+.s-done{color:var(--accent);}
+.s-err{color:var(--danger);}
+.r-body{background:var(--surface2);padding:20px;font-size:14px;line-height:1.75;color:#d4d3e6;white-space:pre-wrap;min-height:60px;}
+
+/* Flashcards */
+.fc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;padding:14px;background:var(--surface2);}
+.fc{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:15px;cursor:pointer;transition:border-color .15s,transform .15s;}
+.fc:hover{border-color:var(--accent2);transform:translateY(-1px);}
+.fc .q{font-size:13px;font-weight:500;color:var(--text);}
+.fc .a{font-size:12px;color:var(--muted);margin-top:8px;display:none;}
+.fc.flipped .a{display:block;}
+.fc.flipped .q{color:var(--accent);}
+.fc-tip{font-size:11px;color:var(--muted);text-align:center;padding:8px;font-family:'DM Mono',monospace;background:var(--surface2);}
+
+/* Quiz */
+.quiz-list{padding:14px;background:var(--surface2);display:flex;flex-direction:column;gap:14px;}
+.quiz-q{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:15px;}
+.quiz-q .qt{font-size:14px;font-weight:500;margin-bottom:10px;}
+.quiz-q .opts{display:flex;flex-direction:column;gap:6px;}
+.opt{font-size:13px;color:var(--muted);padding:8px 12px;border:1px solid var(--border);border-radius:7px;cursor:pointer;transition:all .12s;}
+.opt:hover{border-color:var(--accent2);color:var(--text);}
+.opt.correct{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent);}
+.opt.wrong{border-color:var(--danger);color:var(--danger);background:color-mix(in srgb,var(--danger) 8%,transparent);}
+
+/* Keywords */
+.kw-list{padding:16px;background:var(--surface2);display:flex;flex-direction:column;gap:10px;}
+.kw-row{display:flex;gap:12px;align-items:baseline;}
+.kw-term{font-weight:500;color:var(--accent);min-width:130px;font-size:13px;flex-shrink:0;}
+.kw-def{font-size:13px;color:var(--muted);}
+
+/* Spinner */
+@keyframes spin{to{transform:rotate(360deg);}}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid var(--border2);border-top-color:var(--accent2);border-radius:50%;animation:spin .65s linear infinite;vertical-align:middle;}
+
+.empty{text-align:center;padding:56px 20px;color:var(--muted);}
+.empty-ico{font-size:40px;margin-bottom:14px;}
+.empty p{font-size:14px;}
+
+/* Progress bar */
+.progress-bar{height:3px;background:var(--border);border-radius:2px;margin-top:12px;overflow:hidden;display:none;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:2px;transition:width .4s;}
+
+@media(max-width:600px){.settings-row{grid-template-columns:1fr 1fr;}.settings-row select:last-child{grid-column:1/-1;}}
+
+/* ── History Panel ── */
+.hist-fab{position:fixed;bottom:28px;right:28px;z-index:100;background:var(--accent2);color:#fff;border:none;border-radius:50%;width:52px;height:52px;font-size:20px;cursor:pointer;box-shadow:0 4px 24px rgba(123,108,246,0.45);transition:transform .2s,box-shadow .2s;display:flex;align-items:center;justify-content:center;}
+.hist-fab:hover{transform:scale(1.1);box-shadow:0 6px 32px rgba(123,108,246,0.6);}
+.hist-fab .hist-badge{position:absolute;top:-4px;right:-4px;background:var(--accent);color:#0b0c10;font-size:10px;font-weight:700;font-family:'DM Mono',monospace;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;display:none;}
+
+.hist-drawer{position:fixed;top:0;right:0;height:100vh;width:380px;max-width:100vw;background:var(--surface);border-left:1px solid var(--border);z-index:200;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(0,0,0,0.4);}
+.hist-drawer.open{transform:translateX(0);}
+.hist-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:199;opacity:0;pointer-events:none;transition:opacity .3s;}
+.hist-overlay.open{opacity:1;pointer-events:all;}
+
+.hist-header{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.hist-title{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.hist-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:color .15s;}
+.hist-close:hover{color:var(--text);}
+
+.hist-search{padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.hist-search input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;font-family:'Outfit',sans-serif;outline:none;transition:border-color .2s;}
+.hist-search input:focus{border-color:var(--accent2);}
+.hist-search input::placeholder{color:var(--muted2);}
+
+.hist-list{flex:1;overflow-y:auto;padding:10px;}
+.hist-list::-webkit-scrollbar{width:4px;}
+.hist-list::-webkit-scrollbar-track{background:transparent;}
+.hist-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+.hist-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px;cursor:pointer;transition:border-color .15s,background .15s;}
+.hist-item:hover{border-color:var(--accent2);background:color-mix(in srgb,var(--accent2) 5%,var(--surface2));}
+.hist-item-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.hist-item-title{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;}
+.hist-item-time{font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);white-space:nowrap;}
+.hist-item-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
+.hist-tag{font-size:10px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;background:var(--surface3);color:var(--muted);border:1px solid var(--border);}
+.hist-tag.subject{background:color-mix(in srgb,var(--accent2) 12%,transparent);color:#a090ff;border-color:color-mix(in srgb,var(--accent2) 30%,transparent);}
+.hist-item-preview{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hist-item-actions{display:flex;gap:6px;margin-top:10px;}
+.hist-action-btn{flex:1;padding:6px 0;font-size:11px;font-family:'DM Mono',monospace;border-radius:6px;cursor:pointer;border:1px solid var(--border);background:var(--surface3);color:var(--muted);transition:all .15s;text-align:center;}
+.hist-action-btn:hover{color:var(--text);border-color:var(--border2);}
+.hist-action-btn.del:hover{color:var(--danger);border-color:var(--danger);}
+
+.hist-empty{text-align:center;padding:48px 20px;color:var(--muted);}
+.hist-empty-ico{font-size:32px;margin-bottom:10px;}
+.hist-empty p{font-size:13px;}
+
+.hist-loading{text-align:center;padding:32px;color:var(--muted);font-size:13px;}
+.hist-sb-status{padding:8px 16px;font-size:11px;font-family:'DM Mono',monospace;text-align:center;border-top:1px solid var(--border);flex-shrink:0;}
+.hist-sb-ok{color:var(--accent);}
+.hist-sb-err{color:var(--danger);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">Study<em>Mind</em> <span style="font-size:18px;vertical-align:super;font-family:'DM Mono',monospace;color:var(--muted)">v2</span></div>
+    <div class="sub">PDF · Images · Text → Smart study material</div>
+  </header>
+
+  <!-- API KEY -->
+  <div class="api-bar">
+    <label>API KEY</label>
+    <input type="password" id="apiKey" placeholder="sk-ant-api03-..." oninput="checkKey()"/>
+    <span id="apiStatus"></span>
+    <button onclick="testKey()" style="background:var(--surface3);border:1px solid var(--border2);color:var(--muted);padding:5px 12px;border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;white-space:nowrap;transition:all .15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">Test key</button>
+  </div>
+  <div id="apiError" style="display:none;background:color-mix(in srgb,var(--danger) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--danger) 40%,transparent);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-family:'DM Mono',monospace;color:var(--danger);white-space:pre-wrap;"></div>
+
+  <!-- INPUT CARD (tabbed) -->
+  <div class="input-card">
+    <div class="tab-bar">
+      <div class="tab active" onclick="switchTab('files',this)">📂 Files</div>
+      <div class="tab" onclick="switchTab('text',this)">✏️ Text</div>
+      <div class="tab" onclick="switchTab('both',this)">🔀 Both</div>
+    </div>
+
+    <!-- FILES TAB -->
+    <div class="tab-content active" id="tab-files">
+      <div class="dropzone" id="dropzone"
+        ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)">
+        <input type="file" id="fileInput" multiple
+          accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.txt,.md"
+          onchange="handleFiles(this.files)"/>
+        <div class="dz-icon">📎</div>
+        <div class="dz-text"><strong>Drop files here</strong> or click to browse</div>
+        <div class="dz-types">PDF · PNG · JPG · WEBP · GIF · BMP · TXT · MD</div>
+      </div>
+      <div class="file-list" id="fileList"></div>
+    </div>
+
+    <!-- TEXT TAB -->
+    <div class="tab-content" id="tab-text">
+      <textarea id="notes" placeholder="Paste your notes, lecture text, or any content you want to study from..." rows="8"></textarea>
+    </div>
+
+    <!-- BOTH TAB -->
+    <div class="tab-content" id="tab-both">
+      <div class="dropzone" id="dropzone2"
+        ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)">
+        <input type="file" id="fileInput2" multiple
+          accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.txt,.md"
+          onchange="handleFiles(this.files)"/>
+        <div class="dz-icon">📎</div>
+        <div class="dz-text"><strong>Drop files</strong> or click to browse</div>
+        <div class="dz-types">PDF · PNG · JPG · WEBP · GIF · BMP · TXT · MD</div>
+      </div>
+      <div class="file-list" id="fileList2"></div>
+      <div style="margin-top:14px;">
+        <textarea id="notes2" placeholder="Add extra notes, context, or instructions here..." rows="4"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="settings-row">
+    <select id="subject">
+      <option value="">Subject (optional)</option>
+      <option>Biology</option><option>Chemistry</option><option>Physics</option>
+      <option>Mathematics</option><option>History</option><option>Economics</option>
+      <option>Computer Science</option><option>Literature</option><option>Geography</option>
+      <option>Law</option><option>Medicine</option><option>Psychology</option><option>Other</option>
+    </select>
+    <select id="level">
+      <option value="">Difficulty level</option>
+      <option>Beginner</option><option>Intermediate</option><option>Advanced</option><option>Expert</option>
+    </select>
+    <select id="goal">
+      <option value="">Study goal</option>
+      <option>Exam prep</option><option>Quick revision</option><option>Deep understanding</option>
+      <option>Memorization</option><option>Concept mapping</option>
+    </select>
+  </div>
+
+  <!-- OUTPUTS -->
+  <div class="input-card" style="padding:18px;">
+    <div class="sec-label">Generate outputs</div>
+    <div class="outputs-grid" id="outputToggles">
+      <button class="tog on" data-key="summary" onclick="togOut(this)"><span class="pip"></span>Summary</button>
+      <button class="tog on" data-key="flashcards" onclick="togOut(this)"><span class="pip"></span>Flashcards</button>
+      <button class="tog on" data-key="quiz" onclick="togOut(this)"><span class="pip"></span>Quiz / MCQs</button>
+      <button class="tog" data-key="mindmap" onclick="togOut(this)"><span class="pip"></span>Mind Map</button>
+      <button class="tog" data-key="studyplan" onclick="togOut(this)"><span class="pip"></span>Study Plan</button>
+      <button class="tog" data-key="explain" onclick="togOut(this)"><span class="pip"></span>Simple Explanation</button>
+      <button class="tog" data-key="keywords" onclick="togOut(this)"><span class="pip"></span>Key Terms</button>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;align-items:stretch;">
+    <button class="gen-btn" id="genBtn" onclick="generate()" style="flex:1;">✦ Generate Study Material</button>
+    <button id="cancelBtn" onclick="cancelGenerate()" style="display:none;padding:0 22px;background:color-mix(in srgb,var(--danger) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--danger) 45%,transparent);color:var(--danger);font-size:13px;font-weight:500;font-family:'Outfit',sans-serif;border-radius:10px;cursor:pointer;white-space:nowrap;transition:all .15s;" onmouseover="this.style.background='color-mix(in srgb,var(--danger) 22%,var(--surface))'" onmouseout="this.style.background='color-mix(in srgb,var(--danger) 12%,var(--surface))' ">✕ Cancel</button>
+  </div>
+  <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div id="cancelMsg" style="display:none;font-size:12px;font-family:'DM Mono',monospace;color:var(--danger);margin-top:8px;text-align:center;">⊘ Generation cancelled — completed items kept above</div>
+
+  <div id="results">
+    <div class="empty"><div class="empty-ico">🧠</div><p>Your smart study materials will appear here</p></div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let uploadedFiles = [];
+let activeOutputs = new Set(['summary','flashcards','quiz']);
+let currentTab = 'files';
+let _cancelled = false;  // flag checked between requests (soft cancel)
+
+// ── Tabs ───────────────────────────────────────────────────────────────────
+function switchTab(tab, el) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+}
+
+// ── API key ────────────────────────────────────────────────────────────────
+function checkKey() {
+  const k = document.getElementById('apiKey').value.trim();
+  const s = document.getElementById('apiStatus');
+  if (!k) { s.textContent=''; return; }
+  if (k.startsWith('sk-ant-')) { s.textContent='● valid format'; s.className='key-ok'; }
+  else { s.textContent='✕ unexpected format'; s.className='key-err'; }
+}
+
+function showApiError(msg) {
+  const el = document.getElementById('apiError');
+  el.textContent = msg; el.style.display = 'block';
+}
+function hideApiError() { document.getElementById('apiError').style.display='none'; }
+
+async function testKey() {
+  const k = document.getElementById('apiKey').value.trim();
+  if (!k) { showApiError('Paste your API key first.'); return; }
+  const s = document.getElementById('apiStatus');
+  s.textContent = '…testing'; s.className = 'key-ok';
+  hideApiError();
+
+  // Raw fetch — bypass callClaude so we see the exact response
+  let res, body;
+  try {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': k,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-haiku-20241022',
+        max_tokens: 10,
+        messages: [{ role: 'user', content: 'Say OK' }]
+      })
+    });
+    body = await res.text();
+  } catch(netErr) {
+    s.textContent = '✕ failed'; s.className = 'key-err';
+    showApiError(
+      'Network / CORS error — the request never reached Anthropic.\n\n' +
+      'If you opened this file directly (file://) try serving it via a local server:\n' +
+      '  npx serve .   or   python -m http.server 8080\n\n' +
+      'Raw error: ' + netErr.message
+    );
+    return;
+  }
+
+  if (res.ok) {
+    s.textContent = '✓ key works!'; s.className = 'key-ok';
+    hideApiError();
+  } else {
+    s.textContent = '✕ failed (' + res.status + ')'; s.className = 'key-err';
+    let parsed = {};
+    try { parsed = JSON.parse(body); } catch(_) {}
+    const hint = res.status === 401 ? '→ API key is invalid or expired.' :
+                 res.status === 403 ? '→ Key lacks permission for this model.' :
+                 res.status === 404 ? '→ Model not found — your plan may not include this model.' :
+                 res.status === 429 ? '→ Rate limit hit — wait a moment and try again.' : '';
+    showApiError(
+      'HTTP ' + res.status + ' ' + (res.statusText||'') + '\n' +
+      (hint ? hint + '\n' : '') +
+      '\nRaw response:\n' + (parsed.error?.message || body).slice(0, 400)
+    );
+  }
+}
+
+// ── File handling ──────────────────────────────────────────────────────────
+const SUPPORTED = {
+  'application/pdf': { icon:'📄', badge:'badge-pdf', label:'PDF', mediaType:'application/pdf', isText:false },
+  'image/png':       { icon:'🖼️', badge:'badge-img', label:'PNG', mediaType:'image/png', isText:false },
+  'image/jpeg':      { icon:'🖼️', badge:'badge-img', label:'JPG', mediaType:'image/jpeg', isText:false },
+  'image/jpg':       { icon:'🖼️', badge:'badge-img', label:'JPG', mediaType:'image/jpeg', isText:false },
+  'image/webp':      { icon:'🖼️', badge:'badge-img', label:'WEBP', mediaType:'image/webp', isText:false },
+  'image/gif':       { icon:'🖼️', badge:'badge-img', label:'GIF', mediaType:'image/gif', isText:false },
+  'image/bmp':       { icon:'🖼️', badge:'badge-img', label:'BMP', mediaType:'image/png', isText:false },
+  'text/plain':      { icon:'📝', badge:'badge-txt', label:'TXT', mediaType:null, isText:true },
+  'text/markdown':   { icon:'📝', badge:'badge-txt', label:'MD',  mediaType:null, isText:true },
+};
+
+function getFileType(file) {
+  let t = file.type;
+  if (!t || t === 'application/octet-stream') {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const map = { pdf:'application/pdf', png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg',
+                  webp:'image/webp', gif:'image/gif', bmp:'image/bmp', txt:'text/plain', md:'text/markdown' };
+    t = map[ext] || t;
+  }
+  return t;
+}
+
+function formatSize(b) {
+  if (b<1024) return b+'B';
+  if (b<1048576) return (b/1024).toFixed(1)+'KB';
+  return (b/1048576).toFixed(1)+'MB';
+}
+
+function dzOver(e) { e.preventDefault(); e.currentTarget.classList.add('over'); }
+function dzLeave(e) { e.currentTarget.classList.remove('over'); }
+function dzDrop(e) {
+  e.preventDefault(); e.currentTarget.classList.remove('over');
+  handleFiles(e.dataTransfer.files);
+}
+
+function handleFiles(fileList) {
+  Array.from(fileList).forEach(file => {
+    const type = getFileType(file);
+    const cfg = SUPPORTED[type];
+    if (!cfg) { alert(`Unsupported file type: ${file.name}\nSupported: PDF, PNG, JPG, WEBP, GIF, BMP, TXT, MD`); return; }
+    if (file.size > 20*1024*1024) { alert(`${file.name} is too large (max 20MB)`); return; }
+    if (uploadedFiles.find(f=>f.name===file.name&&f.size===file.size)) return;
+
+    const reader = new FileReader();
+    if (cfg.isText) {
+      reader.onload = e => {
+        uploadedFiles.push({ name:file.name, type, size:file.size, mediaType:null, isText:true, textContent:e.target.result, base64:null, cfg });
+        renderFileList();
+      };
+      reader.readAsText(file);
+    } else {
+      reader.onload = e => {
+        const b64 = e.target.result.split(',')[1];
+        let previewUrl = null;
+        if (type.startsWith('image/')) previewUrl = e.target.result;
+        uploadedFiles.push({ name:file.name, type, size:file.size, mediaType:cfg.mediaType, isText:false, base64:b64, previewUrl, cfg });
+        renderFileList();
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+}
+
+function renderFileList() {
+  ['fileList','fileList2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = '';
+    uploadedFiles.forEach((f,i) => {
+      const div = document.createElement('div');
+      div.className = 'file-item';
+      const preview = f.previewUrl
+        ? `<img class="file-preview-thumb" src="${f.previewUrl}" alt=""/>`
+        : `<span class="file-icon">${f.cfg.icon}</span>`;
+      div.innerHTML = `
+        ${preview}
+        <div class="file-info">
+          <div class="file-name">${f.name}</div>
+          <div class="file-meta">${formatSize(f.size)}</div>
+        </div>
+        <span class="file-badge ${f.cfg.badge}">${f.cfg.label}</span>
+        <button class="file-del" onclick="removeFile(${i})" title="Remove">✕</button>`;
+      el.appendChild(div);
+    });
+  });
+}
+
+function removeFile(i) {
+  uploadedFiles.splice(i,1);
+  renderFileList();
+}
+
+// ── Output toggles ─────────────────────────────────────────────────────────
+function togOut(btn) {
+  const k = btn.dataset.key;
+  btn.classList.toggle('on');
+  if (activeOutputs.has(k)) activeOutputs.delete(k); else activeOutputs.add(k);
+}
+
+// ── Build API message content ──────────────────────────────────────────────
+// FIX: always collect ALL files + ALL text regardless of active tab
+function buildContent(prompt) {
+  const content = [];
+
+  // All uploaded files
+  uploadedFiles.forEach(f => {
+    if (f.isText) {
+      content.push({ type:'text', text:'[File: '+f.name+']\n'+f.textContent });
+    } else if (f.type === 'application/pdf') {
+      content.push({ type:'document', source:{ type:'base64', media_type:'application/pdf', data:f.base64 } });
+    } else if (f.type.startsWith('image/')) {
+      content.push({ type:'image', source:{ type:'base64', media_type:f.mediaType, data:f.base64 } });
+    }
+  });
+
+  // Collect text from BOTH textareas so no tab is missed
+  const t1 = (document.getElementById('notes') ? document.getElementById('notes').value : '').trim();
+  const t2 = (document.getElementById('notes2') ? document.getElementById('notes2').value : '').trim();
+  const combined = [t1, t2].filter(Boolean).join('\n\n');
+  if (combined) content.push({ type:'text', text:'[Notes]\n'+combined });
+
+  // Task prompt always last
+  content.push({ type:'text', text: prompt });
+  return content;
+}
+
+// ── Claude API call ────────────────────────────────────────────────────────
+async function callClaude(content, apiKey) {
+  let res;
+  try {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-haiku-20241022',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: content }]
+      })
+    });
+  } catch(networkErr) {
+    throw new Error('Network error – could not reach Anthropic API.\nMake sure you are online and the API key is correct.\n\nDetails: ' + networkErr.message);
+  }
+
+  if (!res.ok) {
+    let errMsg = 'HTTP ' + res.status;
+    try {
+      const errBody = await res.json();
+      errMsg = errBody.error?.message || JSON.stringify(errBody);
+    } catch(_) {
+      errMsg = await res.text().catch(()=>errMsg);
+    }
+    throw new Error('API error (' + res.status + '): ' + errMsg);
+  }
+
+  const data = await res.json();
+  return (data.content || []).map(c => c.text || '').join('');
+}
+
+// ── Output prompt configs ──────────────────────────────────────────────────
+function getPrompt(key, sub, lvl, goal) {
+  const ctx = [sub&&`Subject: ${sub}`, lvl&&`Level: ${lvl}`, goal&&`Goal: ${goal}`].filter(Boolean).join(' | ');
+  const ctxStr = ctx ? `\nContext: ${ctx}` : '';
+  const prompts = {
+    summary:    `You are a study assistant. Analyze ALL the provided content and return a summary as JSON only, no markdown, no extra text.${ctxStr}\nFormat: {"title":"Topic Title","overview":"2-3 sentence overview","sections":[{"heading":"Section Name","points":["key point","key point","key point"]}]}\nUse 3-5 sections. Points should be concise, informative sentences. No # symbols, no markdown.`,
+    flashcards: `You are a study assistant. Analyze ALL the provided content and create 10-15 flashcards for active recall.${ctxStr}\nReturn ONLY a JSON array, no extra text, no markdown fences:\n[{"q":"question","a":"answer"},...]`,
+    quiz:       `You are a study assistant. Analyze ALL the provided content and create 6 multiple choice questions.${ctxStr}\nReturn ONLY a JSON array, no extra text:\n[{"q":"question","options":["A. opt","B. opt","C. opt","D. opt"],"answer":"A. opt"},...]`,
+    mindmap:    `You are a study assistant. Analyze ALL the provided content and extract a mind map structure.${ctxStr}\nReturn ONLY valid JSON, no extra text, no markdown fences: {"center":"Main Topic","branches":[{"label":"Branch","color":"#7b6cf6","children":["subtopic","subtopic"]}]} Use 4-6 branches with 2-4 children each. Give each branch a different color from: #7b6cf6 #a8f060 #f06090 #f0a030 #30c0f0.`,
+    studyplan:  `You are a study assistant. Analyze ALL the provided content and create a 7-day spaced repetition study plan.${ctxStr}\nInclude specific daily goals, review sessions, and recommended study techniques for each day.`,
+    explain:    `You are a study assistant. Analyze ALL the provided content and explain all key concepts in very simple, friendly language for a complete beginner.${ctxStr}\nUse analogies, examples, and clear plain language. Avoid jargon.`,
+    keywords:   `You are a study assistant. Analyze ALL the provided content and extract the most important key terms.${ctxStr}\nReturn ONLY a JSON array, no extra text:\n[{"term":"term","definition":"brief definition"},...]`
+  };
+  return prompts[key];
+}
+
+// ── Generate ───────────────────────────────────────────────────────────────
+function cancelGenerate() {
+  _cancelled = true;
+  // Current in-flight request will finish naturally,
+  // but no further requests will be started
+  const btn = document.getElementById('cancelBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⊘ Cancelling…'; }
+}
+
+async function generate() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const sub    = document.getElementById('subject').value;
+  const lvl    = document.getElementById('level').value;
+  const goal   = document.getElementById('goal').value;
+
+  const textNotes = (document.getElementById('notes')?.value||'') + (document.getElementById('notes2')?.value||'');
+  const hasFiles  = uploadedFiles.length > 0;
+  const hasText   = textNotes.trim().length > 0;
+
+  if (!apiKey)              { alert('Please enter your Anthropic API key.'); return; }
+  if (!hasFiles && !hasText){ alert('Please upload files or paste some notes first.'); return; }
+  if (activeOutputs.size===0){ alert('Please select at least one output to generate.'); return; }
+
+  // Reset cancel state
+  _cancelled = false;
+
+  const btn       = document.getElementById('genBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+  const cancelMsg = document.getElementById('cancelMsg');
+  const progressBar  = document.getElementById('progressBar');
+  const progressFill = document.getElementById('progressFill');
+
+  btn.disabled       = true;
+  btn.textContent    = '⏳ Generating…';
+  cancelBtn.disabled    = false;
+  cancelBtn.textContent = '✕ Cancel';
+  cancelBtn.style.display = 'block';
+  cancelMsg.style.display = 'none';
+  progressBar.style.display = 'block';
+  progressFill.style.width  = '0%';
+  progressFill.style.background = 'linear-gradient(90deg,var(--accent2),var(--accent))';
+
+  const resultsDiv = document.getElementById('results');
+  resultsDiv.innerHTML = '';
+
+  const keys = [...activeOutputs];
+  let done = 0;
+  const sessionResults = {};  // accumulate raw text per key for history
+
+  const icons  = { summary:'📋', flashcards:'🃏', quiz:'✅', mindmap:'🗺️', studyplan:'📅', explain:'💡', keywords:'🔑' };
+  const labels = { summary:'Summary', flashcards:'Flashcards', quiz:'Quiz / MCQs', mindmap:'Mind Map', studyplan:'Study Plan', explain:'Simple Explanation', keywords:'Key Terms' };
+
+  // Create all result blocks upfront so user sees the queue
+  keys.forEach(key => {
+    const block = document.createElement('div');
+    block.className = 'r-block';
+    block.innerHTML =
+      '<div class="r-head">'+
+        '<div class="r-label"><span>'+icons[key]+'</span>'+labels[key]+'</div>'+
+        '<span class="r-status" id="st-'+key+'" style="color:var(--muted2);font-size:11px;font-family:DM Mono,monospace;">queued</span>'+
+      '</div>'+
+      '<div class="r-body" id="bd-'+key+'"></div>';
+    resultsDiv.appendChild(block);
+  });
+
+  // Sequential loop with cancel check before each request
+  for (const key of keys) {
+    // Check cancellation BEFORE starting this request
+    if (_cancelled) {
+      const stEl = document.getElementById('st-'+key);
+      const bdEl = document.getElementById('bd-'+key);
+      if (stEl) { stEl.textContent = '⊘ skipped'; stEl.style.color='var(--muted2)'; }
+      if (bdEl) { bdEl.style.color='var(--muted2)'; bdEl.style.fontSize='13px'; bdEl.style.padding='16px 20px'; bdEl.textContent='Skipped — generation was cancelled.'; }
+      done++;
+      progressFill.style.width = Math.round((done/keys.length)*100)+'%';
+      continue;
+    }
+
+    const stEl = document.getElementById('st-'+key);
+    const bdEl = document.getElementById('bd-'+key);
+    stEl.innerHTML = '<span class="spin"></span> generating…';
+    stEl.className = 'r-status s-loading';
+
+    try {
+      const prompt     = getPrompt(key, sub, lvl, goal);
+      const msgContent = buildContent(prompt);
+      const text = await callClaude(msgContent, apiKey);
+
+      stEl.textContent = '✓ done';
+      stEl.className   = 'r-status s-done';
+      renderOutput(key, text, bdEl);
+      sessionResults[key] = text;  // store for history
+
+    } catch(err) {
+      if (err.message === 'CANCELLED' || _cancelled) {
+        stEl.textContent = '⊘ cancelled';
+        stEl.style.cssText = 'font-size:11px;font-family:DM Mono,monospace;color:var(--muted2);';
+        bdEl.style.cssText = 'color:var(--muted2);font-size:13px;padding:16px 20px;';
+        bdEl.textContent   = 'Cancelled mid-request.';
+        _cancelled = true;  // make sure remaining items are skipped
+      } else {
+        stEl.textContent  = '✕ error';
+        stEl.className    = 'r-status s-err';
+        bdEl.style.color  = 'var(--danger)';
+        bdEl.style.fontFamily = 'DM Mono,monospace';
+        bdEl.style.fontSize   = '12px';
+        bdEl.textContent  = '⚠ ' + err.message;
+      }
+    }
+
+    done++;
+    progressFill.style.width = Math.round((done/keys.length)*100)+'%';
+    if (!_cancelled && done < keys.length) await new Promise(r => setTimeout(r, 500));
+  }
+
+  // Save session to Supabase history if anything succeeded
+  if (!_cancelled && Object.keys(sessionResults).length > 0) {
+    var notesPreview = ((document.getElementById('notes') ? document.getElementById('notes').value : '') +
+                        (document.getElementById('notes2') ? document.getElementById('notes2').value : '')).trim().slice(0, 200);
+    var topicGuess = sub || (notesPreview.split(' ').slice(0,6).join(' ') || 'Session ' + new Date().toLocaleTimeString());
+    saveToHistory({
+      topic:              topicGuess,
+      subject:            sub  || null,
+      level:              lvl  || null,
+      goal:               goal || null,
+      notes_preview:      notesPreview,
+      file_names:         uploadedFiles.map(function(f){ return f.name; }),
+      outputs_generated:  Object.keys(sessionResults),
+      results:            sessionResults
+    });
+  }
+
+  // Restore UI
+  btn.disabled    = false;
+  btn.textContent = '✦ Generate Study Material';
+  cancelBtn.style.display = 'none';
+
+  if (_cancelled) {
+    progressFill.style.background = 'color-mix(in srgb,var(--danger) 70%,transparent)';
+    cancelMsg.style.display = 'block';
+    setTimeout(() => { progressBar.style.display='none'; cancelMsg.style.display='none'; }, 3500);
+  } else {
+    setTimeout(() => { progressBar.style.display='none'; }, 1200);
+  }
+}
+// ── Render outputs ─────────────────────────────────────────────────────────
+function renderOutput(key, text, el) {
+  const tryJSON = (t) => {
+    const cleaned = t.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
+    try { return JSON.parse(cleaned); } catch { return null; }
+  };
+
+  // ── Summary ──
+  if (key === 'summary') {
+    const data = tryJSON(text);
+    if (data && data.title) {
+      renderSummary(data, el);
+      return;
+    }
+    // fallback: render raw text nicely
+    renderMarkdownText(text, el);
+    return;
+  }
+
+  // ── Flashcards ──
+  if (key === 'flashcards') {
+    const cards = tryJSON(text);
+    if (cards && Array.isArray(cards)) {
+      el.style.padding = '0';
+      el.innerHTML = '<div class="fc-tip">\u21a9 click a card to flip and reveal answer</div>';
+      const grid = document.createElement('div'); grid.className = 'fc-grid';
+      cards.forEach(c => {
+        const fc = document.createElement('div'); fc.className = 'fc';
+        fc.innerHTML = '<div class="q">'+c.q+'</div><div class="a">'+c.a+'</div>';
+        fc.onclick = () => fc.classList.toggle('flipped');
+        grid.appendChild(fc);
+      });
+      el.appendChild(grid); return;
+    }
+  }
+
+  // ── Quiz ──
+  if (key === 'quiz') {
+    const qs = tryJSON(text);
+    if (qs && Array.isArray(qs)) {
+      el.style.padding = '0';
+      const list = document.createElement('div'); list.className = 'quiz-list';
+      qs.forEach((q,i) => {
+        const qDiv = document.createElement('div'); qDiv.className = 'quiz-q';
+        qDiv.innerHTML = '<div class="qt">'+(i+1)+'. '+q.q+'</div><div class="opts"></div>';
+        const opts = qDiv.querySelector('.opts');
+        q.options.forEach(opt => {
+          const o = document.createElement('div'); o.className = 'opt'; o.textContent = opt;
+          o.onclick = () => {
+            if (qDiv.querySelector('.correct')) return;
+            const isCorrect = opt === q.answer || opt.startsWith(q.answer.split('.')[0]);
+            o.classList.add(isCorrect ? 'correct' : 'wrong');
+            if (!isCorrect) opts.querySelectorAll('.opt').forEach(x => {
+              if (x.textContent===q.answer||x.textContent.startsWith(q.answer.split('.')[0])) x.classList.add('correct');
+            });
+          };
+          opts.appendChild(o);
+        });
+        list.appendChild(qDiv);
+      });
+      el.appendChild(list); return;
+    }
+  }
+
+  // ── Mind Map ──
+  if (key === 'mindmap') {
+    const parsed = tryJSON(text);
+    if (parsed && parsed.center) {
+      setTimeout(() => renderMindMap(parsed, el), 60);
+      return;
+    }
+    renderMarkdownText(text, el);
+    return;
+  }
+
+  // ── Keywords ──
+  if (key === 'keywords') {
+    const terms = tryJSON(text);
+    if (terms && Array.isArray(terms)) {
+      el.style.padding = '0';
+      const list = document.createElement('div'); list.className = 'kw-list';
+      terms.forEach(t => {
+        const row = document.createElement('div'); row.className = 'kw-row';
+        row.innerHTML = '<span class="kw-term">'+t.term+'</span><span class="kw-def">'+t.definition+'</span>';
+        list.appendChild(row);
+      });
+      el.appendChild(list); return;
+    }
+  }
+
+  // ── Default: render as clean text ──
+  renderMarkdownText(text, el);
+}
+
+// ── Summary Card Renderer ──────────────────────────────────────────────────
+function renderSummary(data, el) {
+  el.style.padding = '0';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'padding:0;';
+
+  // Title banner
+  const titleBar = document.createElement('div');
+  titleBar.style.cssText = 'padding:20px 24px 16px;border-bottom:1px solid var(--border);';
+  titleBar.innerHTML =
+    '<div style="font-size:11px;font-family:\'DM Mono\',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Topic</div>'+
+    '<div style="font-size:20px;font-weight:600;color:var(--text);line-height:1.3;">'+escHtml(data.title)+'</div>';
+  wrap.appendChild(titleBar);
+
+  // Overview pill
+  if (data.overview) {
+    const ov = document.createElement('div');
+    ov.style.cssText = 'margin:16px 24px;padding:14px 16px;background:color-mix(in srgb,var(--accent2) 10%,var(--surface));border-left:3px solid var(--accent2);border-radius:0 8px 8px 0;font-size:14px;line-height:1.7;color:#c8c7e0;';
+    ov.textContent = data.overview;
+    wrap.appendChild(ov);
+  }
+
+  // Sections
+  (data.sections || []).forEach((sec, si) => {
+    const secEl = document.createElement('div');
+    secEl.style.cssText = 'padding:16px 24px;'+(si > 0 ? 'border-top:1px solid var(--border);' : '');
+
+    // Section heading with colored dot
+    const colors = ['#7b6cf6','#a8f060','#f06090','#f0a030','#30c0f0','#f05050'];
+    const col = colors[si % colors.length];
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:12px;';
+    hdr.innerHTML =
+      '<span style="width:8px;height:8px;border-radius:50%;background:'+col+';flex-shrink:0;display:inline-block;"></span>'+
+      '<span style="font-size:13px;font-weight:600;color:'+col+';text-transform:uppercase;letter-spacing:.06em;">'+escHtml(sec.heading)+'</span>';
+    secEl.appendChild(hdr);
+
+    // Points list
+    const ul = document.createElement('div');
+    ul.style.cssText = 'display:flex;flex-direction:column;gap:7px;';
+    (sec.points || []).forEach((pt, pi) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;';
+      row.innerHTML =
+        '<span style="min-width:20px;height:20px;border-radius:5px;background:color-mix(in srgb,'+col+' 15%,var(--surface3));display:flex;align-items:center;justify-content:center;font-size:10px;font-family:\'DM Mono\',monospace;color:'+col+';margin-top:2px;flex-shrink:0;">'+(pi+1)+'</span>'+
+        '<span style="font-size:13px;line-height:1.65;color:#c8c7dc;">'+escHtml(pt)+'</span>';
+      ul.appendChild(row);
+    });
+    secEl.appendChild(ul);
+    wrap.appendChild(secEl);
+  });
+
+  el.appendChild(wrap);
+}
+
+// ── Markdown-to-HTML fallback renderer ────────────────────────────────────
+function renderMarkdownText(text, el) {
+  // Strip leading/trailing whitespace
+  let lines = text.split('\n');
+  let html = '';
+  let inList = false;
+
+  lines.forEach(line => {
+    // Remove lone # from headings, render as styled heading
+    const h3 = line.match(/^###\s+(.+)/);
+    const h2 = line.match(/^##\s+(.+)/);
+    const h1 = line.match(/^#\s+(.+)/);
+    const bullet = line.match(/^[-*]\s+(.+)/);
+    const numbered = line.match(/^(\d+)\.\s+(.+)/);
+    const bold = line.match(/^\*\*(.+)\*\*$/);
+
+    if (inList && !bullet && !numbered) { html += '</div>'; inList = false; }
+
+    if (h1) {
+      html += '<div style="font-size:17px;font-weight:600;color:var(--text);margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border);">'+escHtml(h1[1])+'</div>';
+    } else if (h2) {
+      html += '<div style="font-size:15px;font-weight:600;color:#a8a0f0;margin:14px 0 6px;">'+escHtml(h2[1])+'</div>';
+    } else if (h3) {
+      html += '<div style="font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:12px 0 5px;">'+escHtml(h3[1])+'</div>';
+    } else if (bold) {
+      html += '<div style="font-size:14px;font-weight:600;color:var(--text);margin:10px 0 4px;">'+escHtml(bold[1])+'</div>';
+    } else if (bullet || numbered) {
+      if (!inList) { html += '<div style="display:flex;flex-direction:column;gap:5px;margin:6px 0;">'; inList = true; }
+      const content = bullet ? bullet[1] : numbered[2];
+      const marker = bullet
+        ? '<span style="width:5px;height:5px;border-radius:50%;background:var(--accent2);margin-top:7px;flex-shrink:0;display:inline-block;"></span>'
+        : '<span style="min-width:18px;font-size:10px;font-family:\'DM Mono\',monospace;color:var(--accent2);margin-top:3px;flex-shrink:0;">'+numbered[1]+'.</span>';
+      html += '<div style="display:flex;gap:9px;align-items:flex-start;">'+marker+'<span style="font-size:13px;line-height:1.65;color:#c0bfd8;">'+escHtml(content)+'</span></div>';
+    } else if (line.trim() === '') {
+      if (!inList) html += '<div style="height:8px;"></div>';
+    } else {
+      html += '<div style="font-size:13px;line-height:1.7;color:#c0bfd8;margin:3px 0;">'+inlineMarkdown(line)+'</div>';
+    }
+  });
+
+  if (inList) html += '</div>';
+  el.innerHTML = html;
+}
+
+function inlineMarkdown(text) {
+  return escHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--text);">$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em style="color:#b0b0d0;">$1</em>')
+    .replace(/`(.+?)`/g, '<code style="background:var(--surface3);padding:1px 5px;border-radius:4px;font-family:\'DM Mono\',monospace;font-size:12px;color:#a8f060;">$1</code>');
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Mind Map Renderer (v2 — clearer) ──────────────────────────────────────
+function renderMindMap(data, el) {
+  el.style.padding = '0';
+  el.style.background = '#0c0d12';
+
+  const branches = data.branches || [];
+  const n = branches.length;
+
+  // Canvas size — scale up for more breathing room
+  const W = Math.max(el.offsetWidth || 700, 700);
+  const H = 580;
+  const cx = W / 2, cy = H / 2;
+  const DPR = 2;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W * DPR; canvas.height = H * DPR;
+  canvas.style.cssText = 'width:100%;height:'+H+'px;display:block;';
+  el.appendChild(canvas);
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(DPR, DPR);
+
+  // ── Background ──
+  ctx.fillStyle = '#0c0d12';
+  ctx.fillRect(0, 0, W, H);
+  // Subtle dot grid
+  for (let x = 24; x < W; x += 32) {
+    for (let y = 24; y < H; y += 32) {
+      ctx.fillStyle = 'rgba(255,255,255,0.035)';
+      ctx.beginPath(); ctx.arc(x, y, 1.2, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  // ── Helpers ──
+  function hexRgba(hex, a) {
+    const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+    return 'rgba('+r+','+g+','+b+','+a+')';
+  }
+
+  function pill(x, y, w, h, r, fill, strokeCol, strokeW) {
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w-r, y); ctx.arcTo(x+w, y, x+w, y+r, r);
+    ctx.lineTo(x+w, y+h-r); ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+    ctx.lineTo(x+r, y+h); ctx.arcTo(x, y+h, x, y+h-r, r);
+    ctx.lineTo(x, y+r); ctx.arcTo(x, y, x+r, y, r);
+    ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (strokeCol) { ctx.strokeStyle = strokeCol; ctx.lineWidth = strokeW||1.5; ctx.stroke(); }
+  }
+
+  // Multi-line text inside a box — returns measured height
+  function boxText(lines, cx, cy, col, fs, fw) {
+    ctx.font = (fw||'500')+' '+fs+'px "Outfit", sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const lh = fs + 5;
+    const total = lines.length * lh;
+    lines.forEach((l, i) => {
+      ctx.fillStyle = col;
+      ctx.fillText(l, cx, cy - total/2 + lh/2 + i*lh);
+    });
+  }
+
+  // Word-wrap a string to fit maxW pixels
+  function wrapText(str, maxW, fs, fw) {
+    ctx.font = (fw||'500')+' '+fs+'px "Outfit", sans-serif';
+    const words = String(str).split(' ');
+    const lines = [];
+    let cur = '';
+    words.forEach(w => {
+      const test = cur ? cur+' '+w : w;
+      if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; }
+      else cur = test;
+    });
+    if (cur) lines.push(cur);
+    return lines;
+  }
+
+  function textW(str, fs, fw) {
+    ctx.font = (fw||'500')+' '+fs+'px "Outfit", sans-serif';
+    return ctx.measureText(str).width;
+  }
+
+  // ── Geometry ──
+  const R_BRANCH = 145;   // center → branch node center
+  const R_CHILD  = 255;   // center → child node center
+  const BRANCH_PAD_X = 18, BRANCH_PAD_Y = 10;
+  const CHILD_PAD_X  = 14, CHILD_PAD_Y  = 8;
+  const BRANCH_MAX_W = 110;
+  const CHILD_MAX_W  = 100;
+  const BRANCH_FS = 12, CHILD_FS = 11;
+
+  const angleStep = (Math.PI * 2) / n;
+
+  // ── Pass 1: compute all positions ──
+  const branchData = branches.map((br, i) => {
+    const angle = angleStep * i - Math.PI / 2;
+    const bx = cx + Math.cos(angle) * R_BRANCH;
+    const by = cy + Math.sin(angle) * R_BRANCH;
+    const bLines = wrapText(br.label, BRANCH_MAX_W, BRANCH_FS, '600');
+    const bW = Math.max(...bLines.map(l => textW(l, BRANCH_FS, '600'))) + BRANCH_PAD_X * 2;
+    const bH = bLines.length * (BRANCH_FS + 5) + BRANCH_PAD_Y * 2;
+    const col = br.color || '#7b6cf6';
+
+    const children = (br.children || []).map((child, j) => {
+      const spread = Math.min(0.7, (br.children.length - 1) * 0.28);
+      const cAngle = br.children.length === 1 ? angle
+        : angle - spread/2 + spread * j / (br.children.length - 1);
+      const ccx = cx + Math.cos(cAngle) * R_CHILD;
+      const ccy = cy + Math.sin(cAngle) * R_CHILD;
+      const cLines = wrapText(child, CHILD_MAX_W, CHILD_FS, '400');
+      const cW = Math.max(...cLines.map(l => textW(l, CHILD_FS, '400'))) + CHILD_PAD_X * 2;
+      const cH = cLines.length * (CHILD_FS + 4) + CHILD_PAD_Y * 2;
+      return { x: ccx, y: ccy, lines: cLines, w: cW, h: cH, angle: cAngle };
+    });
+
+    return { x: bx, y: by, lines: bLines, w: bW, h: bH, col, angle, children };
+  });
+
+  // ── Pass 2: draw connector lines FIRST (behind nodes) ──
+  branchData.forEach(br => {
+    // Thick line center → branch (tapered look via two lines)
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(br.x, br.y);
+    ctx.strokeStyle = hexRgba(br.col, 0.35);
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Children lines: smooth bezier
+    br.children.forEach(ch => {
+      const cpX = (br.x + ch.x) / 2;
+      const cpY = (br.y + ch.y) / 2;
+      ctx.beginPath();
+      ctx.moveTo(br.x, br.y);
+      ctx.quadraticCurveTo(cpX, cpY, ch.x, ch.y);
+      ctx.strokeStyle = hexRgba(br.col, 0.25);
+      ctx.lineWidth = 1.8;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    });
+  });
+
+  // ── Pass 3: draw nodes ON TOP of lines ──
+  branchData.forEach(br => {
+    // Branch node
+    const bx = br.x - br.w/2, by = br.y - br.h/2;
+    pill(bx, by, br.w, br.h, 8,
+      hexRgba(br.col, 0.22),
+      br.col, 1.8);
+    boxText(br.lines, br.x, br.y, br.col, BRANCH_FS, '600');
+
+    // Child nodes
+    br.children.forEach(ch => {
+      const cx2 = ch.x - ch.w/2, cy2 = ch.y - ch.h/2;
+      pill(cx2, cy2, ch.w, ch.h, ch.h/2,
+        hexRgba(br.col, 0.10),
+        hexRgba(br.col, 0.45), 1.2);
+      boxText(ch.lines, ch.x, ch.y, 'rgba(235,233,250,0.9)', CHILD_FS, '400');
+    });
+  });
+
+  // ── Center node ──
+  const CR = 52;
+  // Glow
+  const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, CR * 2.2);
+  glow.addColorStop(0, 'rgba(123,108,246,0.18)');
+  glow.addColorStop(1, 'rgba(123,108,246,0)');
+  ctx.beginPath(); ctx.arc(cx, cy, CR * 2.2, 0, Math.PI*2);
+  ctx.fillStyle = glow; ctx.fill();
+
+  // Circle fill
+  const grad = ctx.createRadialGradient(cx-8, cy-8, 0, cx, cy, CR);
+  grad.addColorStop(0, '#4a3ec0');
+  grad.addColorStop(1, '#1c1860');
+  ctx.beginPath(); ctx.arc(cx, cy, CR, 0, Math.PI*2);
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.strokeStyle = 'rgba(160,148,255,0.8)'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Center text
+  const cLines = wrapText(data.center || 'Topic', CR*1.5, 13, '700');
+  boxText(cLines, cx, cy, '#ffffff', 13, '700');
+
+  // ── Download button ──
+  const dlBtn = document.createElement('button');
+  dlBtn.textContent = '\u2b07 Download PNG';
+  dlBtn.style.cssText = 'display:block;margin:10px auto 14px;background:var(--surface3);border:1px solid var(--border2);color:var(--muted);padding:7px 20px;border-radius:7px;font-size:12px;font-family:"DM Mono",monospace;cursor:pointer;transition:color .15s;';
+  dlBtn.onmouseover = () => dlBtn.style.color = 'var(--text)';
+  dlBtn.onmouseout  = () => dlBtn.style.color = 'var(--muted)';
+  dlBtn.onclick = () => {
+    const a = document.createElement('a');
+    a.download = 'mindmap.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  };
+  el.appendChild(dlBtn);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ── Supabase History ──────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+const SB_URL = 'https://lglxvqqxockovuyabxql.supabase.co';
+const SB_KEY = 'sb_publishable_mtFPCoRDAk5m-Axav7mE2Q_ngTHsl_A';
+const TABLE  = 'study_history';
+
+let sbClient = null;
+let historyItems = [];
+let histFiltered = [];
+
+function initSupabase() {
+  try {
+    sbClient = window.supabase.createClient(SB_URL, SB_KEY);
+    updateSbStatus('● connected', true);
+    loadHistory();
+  } catch(e) {
+    updateSbStatus('Supabase error: ' + e.message, false);
+  }
+}
+
+function updateSbStatus(msg, ok) {
+  const el = document.getElementById('histSbStatus');
+  if (el) { el.textContent = msg; el.className = 'hist-sb-status ' + (ok ? 'hist-sb-ok' : 'hist-sb-err'); }
+}
+
+async function saveToHistory(sessionData) {
+  if (!sbClient) return;
+  try {
+    const { error } = await sbClient.from(TABLE).insert([sessionData]);
+    if (error) { console.warn('Save error:', error.message); updateSbStatus('Save failed: ' + error.message, false); return; }
+    loadHistory();
+  } catch(e) { console.warn('Save exception:', e.message); }
+}
+
+async function loadHistory() {
+  if (!sbClient) return;
+  const el = document.getElementById('histList');
+  if (el) el.innerHTML = '<div class="hist-loading">Loading…</div>';
+  try {
+    const { data, error } = await sbClient.from(TABLE).select('*').order('created_at', { ascending: false }).limit(50);
+    if (error) throw error;
+    historyItems = data || [];
+    histFiltered = historyItems;
+    renderHistoryList(histFiltered);
+    updateBadge(historyItems.length);
+    updateSbStatus('● ' + historyItems.length + ' session' + (historyItems.length !== 1 ? 's' : '') + ' saved', true);
+  } catch(e) {
+    updateSbStatus('Load failed: ' + e.message, false);
+    if (el) el.innerHTML = '<div class="hist-empty"><div class="hist-empty-ico">⚠️</div><p style="color:var(--danger);font-size:12px;">' + e.message + '</p><p style="font-size:11px;color:var(--muted);margin-top:8px;">Make sure the <code>study_history</code> table exists in your Supabase project.</p></div>';
+  }
+}
+
+function renderHistoryList(items) {
+  const el = document.getElementById('histList');
+  if (!el) return;
+  if (!items.length) {
+    el.innerHTML = '<div class="hist-empty"><div class="hist-empty-ico">📭</div><p>No history yet.<br>Generate something first!</p></div>';
+    return;
+  }
+  const icons  = { summary:'📋', flashcards:'🃏', quiz:'✅', mindmap:'🗺️', studyplan:'📅', explain:'💡', keywords:'🔑' };
+  el.innerHTML = items.map(function(item) {
+    var date = new Date(item.created_at);
+    var timeStr = date.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}) + ' ' + date.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    var outs = (item.outputs_generated || []);
+    var outsStr = outs.map(function(k){ return (icons[k]||'') + ' ' + k; }).join(', ');
+    var filesStr = (item.file_names||[]).length ? (item.file_names.length + ' file' + (item.file_names.length>1?'s':'')) : '';
+    return '<div class="hist-item" id="hitem-' + item.id + '">' +
+      '<div class="hist-item-top">' +
+        '<div class="hist-item-title">' + escHtml(item.topic || 'Untitled session') + '</div>' +
+        '<div class="hist-item-time">' + timeStr + '</div>' +
+      '</div>' +
+      '<div class="hist-item-meta">' +
+        (item.subject ? '<span class="hist-tag subject">' + escHtml(item.subject) + '</span>' : '') +
+        (item.level   ? '<span class="hist-tag">' + escHtml(item.level) + '</span>' : '') +
+        (filesStr     ? '<span class="hist-tag">📎 ' + filesStr + '</span>' : '') +
+      '</div>' +
+      '<div class="hist-item-preview">' + escHtml(outsStr) + '</div>' +
+      '<div class="hist-item-actions">' +
+        '<div class="hist-action-btn" onclick="restoreSession(\'' + item.id + '\')">↩ Restore</div>' +
+        '<div class="hist-action-btn del" onclick="deleteSession(\'' + item.id + '\')">🗑 Delete</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function filterHistory() {
+  var q = (document.getElementById('histSearch').value || '').toLowerCase().trim();
+  histFiltered = q ? historyItems.filter(function(item){
+    return (item.topic||'').toLowerCase().includes(q) ||
+           (item.subject||'').toLowerCase().includes(q) ||
+           (item.notes_preview||'').toLowerCase().includes(q) ||
+           (item.outputs_generated||[]).join(' ').toLowerCase().includes(q);
+  }) : historyItems;
+  renderHistoryList(histFiltered);
+}
+
+function restoreSession(id) {
+  var item = historyItems.find(function(h){ return h.id === id; });
+  if (!item || !item.results) { showToast('No results stored for this session'); return; }
+  if (item.subject) document.getElementById('subject').value = item.subject;
+  if (item.level)   document.getElementById('level').value   = item.level;
+  if (item.goal)    document.getElementById('goal').value    = item.goal;
+  var resultsDiv = document.getElementById('results');
+  resultsDiv.innerHTML = '';
+  var icons  = { summary:'📋', flashcards:'🃏', quiz:'✅', mindmap:'🗺️', studyplan:'📅', explain:'💡', keywords:'🔑' };
+  var labels = { summary:'Summary', flashcards:'Flashcards', quiz:'Quiz / MCQs', mindmap:'Mind Map', studyplan:'Study Plan', explain:'Simple Explanation', keywords:'Key Terms' };
+  var results = item.results;
+  Object.keys(results).forEach(function(key) {
+    var text = results[key];
+    var block = document.createElement('div');
+    block.className = 'r-block';
+    block.innerHTML =
+      '<div class="r-head">' +
+        '<div class="r-label"><span>' + (icons[key]||'📄') + '</span>' + (labels[key]||key) + '</div>' +
+        '<span class="r-status s-done">✓ restored</span>' +
+      '</div>' +
+      '<div class="r-body" id="bd-restored-' + key + '"></div>';
+    resultsDiv.appendChild(block);
+    var bdEl = block.querySelector('.r-body');
+    if (key === 'mindmap') {
+      setTimeout(function(){ try { var d = JSON.parse(text.replace(/^```json\s*/,'').replace(/```\s*$/,'').trim()); renderMindMap(d, bdEl); } catch(e){ bdEl.textContent = text; } }, 60);
+    } else {
+      renderOutput(key, text, bdEl);
+    }
+  });
+  closeHistory();
+  setTimeout(function(){ resultsDiv.scrollIntoView({behavior:'smooth',block:'start'}); }, 100);
+  showToast('Session restored ↩');
+}
+
+async function deleteSession(id) {
+  if (!sbClient) return;
+  if (!confirm('Delete this session?')) return;
+  try {
+    var div = document.getElementById('hitem-' + id);
+    if (div) { div.style.opacity = '0.4'; div.style.pointerEvents = 'none'; }
+    var res = await sbClient.from(TABLE).delete().eq('id', id);
+    if (res.error) throw res.error;
+    historyItems = historyItems.filter(function(h){ return h.id !== id; });
+    histFiltered = histFiltered.filter(function(h){ return h.id !== id; });
+    renderHistoryList(histFiltered);
+    updateBadge(historyItems.length);
+    updateSbStatus('● ' + historyItems.length + ' session' + (historyItems.length !== 1 ? 's' : '') + ' saved', true);
+    showToast('Session deleted');
+  } catch(e) { alert('Delete failed: ' + e.message); }
+}
+
+function openHistory()  { document.getElementById('histDrawer').classList.add('open'); document.getElementById('histOverlay').classList.add('open'); }
+function closeHistory() { document.getElementById('histDrawer').classList.remove('open'); document.getElementById('histOverlay').classList.remove('open'); }
+
+function updateBadge(n) {
+  var badge = document.getElementById('histBadge');
+  if (!badge) return;
+  badge.textContent = n > 99 ? '99+' : String(n);
+  badge.style.display = n > 0 ? 'flex' : 'none';
+}
+
+function showToast(msg) {
+  var t = document.getElementById('sb-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'sb-toast';
+    t.style.cssText = 'position:fixed;bottom:92px;right:28px;background:var(--surface);border:1px solid var(--accent);color:var(--accent);font-size:12px;font-family:"DM Mono",monospace;padding:8px 16px;border-radius:8px;z-index:300;opacity:0;transition:all .25s;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function(){ t.style.opacity = '0'; }, 2500);
+}
+
+// Wait for Supabase library then init
+(function waitForSb() {
+  if (window.supabase && window.supabase.createClient) { initSupabase(); }
+  else { setTimeout(waitForSb, 100); }
+})();
+
+</script>
+<!-- History overlay -->
+<div class="hist-overlay" id="histOverlay" onclick="closeHistory()"></div>
+
+<!-- History slide-in drawer -->
+<div class="hist-drawer" id="histDrawer">
+  <div class="hist-header">
+    <div class="hist-title">🕓 Session History</div>
+    <button class="hist-close" onclick="closeHistory()">✕</button>
+  </div>
+  <div class="hist-search">
+    <input type="text" id="histSearch" placeholder="Search by subject or topic…" oninput="filterHistory()"/>
+  </div>
+  <div class="hist-list" id="histList">
+    <div class="hist-loading">Loading history…</div>
+  </div>
+  <div class="hist-sb-status" id="histSbStatus"></div>
+</div>
+
+<!-- Floating history button -->
+<button class="hist-fab" onclick="openHistory()" title="View history">
+  🕓
+  <span class="hist-badge" id="histBadge">0</span>
+</button>
+
+</body>
+</html>
